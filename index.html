@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — PayTest</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #f0efe9;
+      --surface:       #ffffff;
+      --surface2:      #f8f7f3;
+      --border:        rgba(0,0,0,0.09);
+      --border-md:     rgba(0,0,0,0.16);
+      --text:          #111110;
+      --text-muted:    #6b6b67;
+      --text-hint:     #a8a8a4;
+      --accent:        #1a1a2e;
+      --accent2:       #0f3460;
+      --danger:        #c0392b;
+      --danger-bg:     #fdf2f1;
+      --success:       #1a6e3f;
+      --success-bg:    #edfbf3;
+      --success-border:#a8e6c3;
+      --pix:           #00b4d8;
+      --pix-bg:        #e8f9fd;
+      --warn-bg:       #fffbeb;
+      --warn-text:     #854d0e;
+      --font:          'Sora', sans-serif;
+      --mono:          'JetBrains Mono', monospace;
+      --r:             10px;
+      --r-lg:          16px;
+      --r-xl:          22px;
+      --shadow:        0 2px 16px rgba(0,0,0,0.07);
+      --shadow-lg:     0 8px 40px rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+      color: var(--text);
+    }
+
+    /* ── Layout ── */
+    .checkout-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+      align-items: start;
+    }
+
+    /* ── Order Summary ── */
+    .summary-panel {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      border: 0.5px solid var(--border);
+      padding: 1.75rem;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.4s ease both;
+    }
+    .summary-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 18px; height: 18px; }
+    .logo-name { font-size: 16px; font-weight: 600; color: var(--text); }
+    .logo-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .order-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .order-item:last-of-type { border-bottom: none; }
+    .item-img {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .item-info { flex: 1; }
+    .item-name { font-size: 13px; font-weight: 500; }
+    .item-qty  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .item-price{ font-size: 13px; font-weight: 600; font-family: var(--mono); }
+
+    .summary-totals { margin-top: 1.25rem; }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 5px 0;
+    }
+    .total-row.grand {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      border-top: 0.5px solid var(--border);
+      margin-top: 8px;
+      padding-top: 12px;
+    }
+    .total-row.grand .val { font-family: var(--mono); }
+
+    .secure-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 0.5px solid var(--border);
+    }
+    .secure-note svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* ── Payment Panel ── */
+    .payment-panel {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      border: 0.5px solid var(--border);
+      padding: 1.75rem;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.4s 0.08s ease both;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── PIX Box ── */
+    .pix-box {
+      border: 1px solid var(--pix);
+      border-radius: var(--r-lg);
+      padding: 1.5rem;
+      text-align: center;
+      background: var(--pix-bg);
+    }
+    .pix-qr {
+      width: 160px; height: 160px;
+      background: #fff;
+      border-radius: 10px;
+      margin: 0 auto 1rem;
+      display: flex; align-items: center; justify-content: center;
+      border: 0.5px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .pix-qr img { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
+    .pix-qr-placeholder {
+      display: grid;
+      grid-template-columns: repeat(7,1fr);
+      gap: 2px;
+      padding: 12px;
+      width: 100%; height: 100%;
+    }
+    .pix-qr-placeholder span { background: #111; border-radius: 1px; }
+
+    /* Loading spinner no QR */
+    .pix-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .pix-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid rgba(0,180,216,0.25);
+      border-top-color: var(--pix);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .pix-title   { font-size: 14px; font-weight: 600; color: #0077a3; margin-bottom: 4px; }
+    .pix-desc    { font-size: 12px; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.6; }
+    .pix-key-box {
+      background: #fff;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--r);
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 0.75rem;
+    }
+    .pix-key { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; text-align:left; }
+    .pix-copy-btn {
+      font-size: 11px; color: var(--pix); font-weight: 600;
+      border: none; background: none; cursor: pointer; font-family: var(--font);
+      white-space: nowrap; padding: 0; flex-shrink:0;
+    }
+    .pix-steps { text-align: left; margin-top: 0.75rem; }
+    .pix-step  { display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--text-muted); padding: 4px 0; }
+    .pix-step-num { width:18px; height:18px; border-radius:50%; background:var(--pix); color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .pix-expires { font-size:11px; color:var(--warn-text); background:var(--warn-bg); padding:6px 10px; border-radius:6px; margin-top:0.75rem; display:flex; align-items:center; justify-content:center; gap:6px; }
+    #pixTimer { font-weight: 600; font-family: var(--mono); }
+
+    /* Botão gerar novo código */
+    .pix-refresh-btn {
+      width: 100%;
+      height: 44px;
+      background: var(--pix);
+      color: #fff;
+      border: none;
+      border-radius: var(--r);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 1rem;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .pix-refresh-btn:hover { background: #009abc; }
+    .pix-refresh-btn:active { transform: scale(0.99); }
+    .pix-refresh-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .pix-refresh-btn svg { width: 15px; height: 15px; }
+
+    /* ── Error ── */
+    .global-err {
+      display: none;
+      background: var(--danger-bg);
+      border: 0.5px solid rgba(192,57,43,0.3);
+      border-radius: var(--r);
+      padding: 10px 13px;
+      font-size: 13px;
+      color: var(--danger);
+      margin-top: 1rem;
+    }
+    .global-err.show { display: block; }
+
+    /* ── Badge ── */
+    .pix-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-hint);
+      margin-top: 1.25rem;
+    }
+    .pix-badge-icon {
+      background: var(--pix);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Success overlay ── */
+    .success-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .success-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+    .success-card {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      padding: 2.5rem 2rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+    .success-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      border: 1.5px solid var(--success-border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .success-icon svg { width: 30px; height: 30px; }
+    .success-title { font-size: 20px; font-weight: 600; margin-bottom: 0.5rem; }
+    .success-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
+    .success-detail {
+      background: var(--surface2);
+      border-radius: var(--r);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+    .sd-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
+    .sd-key { color:var(--text-muted); }
+    .sd-val { font-family:var(--mono); font-size:11px; }
+    .close-btn {
+      width:100%; height:44px; background:var(--accent); color:#fff; border:none;
+      border-radius:var(--r); font-size:14px; font-weight:500; cursor:pointer;
+      font-family:var(--font); transition:background 0.15s;
+    }
+    .close-btn:hover { background:var(--accent2); }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      body { padding: 1rem 0.75rem 3rem; }
+      .checkout-grid { grid-template-columns: 1fr; }
+      .summary-panel { order: 2; }
+      .payment-panel { order: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="checkout-grid">
+
+  <!-- ══ ORDER SUMMARY ══ -->
+  <div class="summary-panel">
+    <div class="summary-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+          <rect x="1" y="4" width="22" height="16" rx="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">PayTest</div>
+        <div class="logo-sub">checkout seguro</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:0.75rem;">Resumo do pedido</div>
+
+    <div class="order-item">
+      <div class="item-img">📦</div>
+      <div class="item-info">
+        <div class="item-name">Plano Profissional</div>
+        <div class="item-qty">1× assinatura anual</div>
+      </div>
+      <div class="item-price">R$ 897,00</div>
+    </div>
+    <div class="order-item">
+      <div class="item-img">🔧</div>
+      <div class="item-info">
+        <div class="item-name">Suporte Premium</div>
+        <div class="item-qty">1× add-on</div>
+      </div>
+      <div class="item-price">R$ 197,00</div>
+    </div>
+
+    <div class="summary-totals">
+      <div class="total-row"><span>Subtotal</span><span>R$ 1.094,00</span></div>
+      <div class="total-row"><span>Desconto (5%)</span><span style="color:var(--success)">− R$ 54,70</span></div>
+      <div class="total-row"><span>Frete</span><span>Grátis</span></div>
+      <div class="total-row grand">
+        <span>Total</span>
+        <span class="val">R$ 1.039,30</span>
+      </div>
+    </div>
+
+    <div class="secure-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Pagamento 100% seguro · Criptografia SSL · Chave PIX verificada
+    </div>
+  </div>
+
+  <!-- ══ PAYMENT PANEL ══ -->
+  <div class="payment-panel">
+    <div class="panel-title">Pague com PIX</div>
+
+    <div class="pix-box">
+      <div class="pix-qr" id="pixQrBox">
+        <!-- Preenchido via JS -->
+        <div class="pix-loading" id="pixLoading">
+          <div class="pix-spinner"></div>
+          Gerando código...
+        </div>
+      </div>
+
+      <div class="pix-title">Pague R$ 1.039,30 via PIX</div>
+      <div class="pix-desc">Escaneie o QR Code com o app do seu banco<br>ou copie o código abaixo</div>
+
+      <div class="pix-key-box">
+        <div class="pix-key" id="pixKey">Aguardando...</div>
+        <button class="pix-copy-btn" onclick="copyPix()" id="pixCopyBtn" disabled>Copiar</button>
+      </div>
+
+      <div class="pix-steps">
+        <div class="pix-step"><div class="pix-step-num">1</div>Abra o app do seu banco e acesse a área PIX</div>
+        <div class="pix-step"><div class="pix-step-num">2</div>Escolha "Pagar com QR Code" ou "Copia e Cola"</div>
+        <div class="pix-step"><div class="pix-step-num">3</div>Confirme os dados e autorize o pagamento</div>
+      </div>
+
+      <div class="pix-expires">
+        ⏱ Expira em <span id="pixTimer">15:00</span>
+      </div>
+    </div>
+
+    <div class="global-err" id="pixErr"></div>
+
+    <button class="pix-refresh-btn" id="pixRefreshBtn" onclick="gerarPix()" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Gerar novo código PIX
+    </button>
+
+    <div class="pix-badge">
+      Pagamento instantâneo via
+      <span class="pix-badge-icon">PIX</span>
+      Banco Central do Brasil
+    </div>
+  </div>
+</div>
+
+<!-- ══ SUCCESS OVERLAY ══ -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="success-title">PIX confirmado!</div>
+    <div class="success-desc">Seu pagamento foi recebido com sucesso.<br>Um e-mail de confirmação será enviado em breve.</div>
+    <div class="success-detail" id="successDetail"></div>
+    <button class="close-btn" onclick="closeSuccess()">Voltar ao início</button>
+  </div>
+</div>
+
+<script>
+const TOTAL = 1039.30;
+let pixTimerInterval = null;
+let pixSeconds = 900;
+
+// ══════════════════════════════════
+// CHAVE PIX JÁ CRIADA
+// Substitua os valores abaixo pela sua chave real
+// ══════════════════════════════════
+const PIX_CONFIG = {
+  chave:       'enrksdigital@gmail.com',   // sua chave Pix (e-mail, CPF, CNPJ, telefone ou chave aleatória)
+  nome:        'PayTest Pagamentos',           // nome do recebedor (máx 25 chars)
+  cidade:      'SAO PAULO',                   // cidade do recebedor (máx 15 chars)
+  valor:       '100',                     // valor fixo
+  txid:        'PAYTEST' + Date.now(),        // ID da transação
+  descricao:   'Plano Pro + Suporte',         // descrição opcional
+};
+
+// ══════════════════════════════════
+// GERADOR DE PAYLOAD PIX (padrão EMV)
+// ══════════════════════════════════
+function pixPayload(cfg) {
+  function field(id, value) {
+    const len = String(value.length).padStart(2, '0');
+    return `${id}${len}${value}`;
+  }
+
+  // Merchant Account Info (GUI + chave)
+  const gui  = field('00', 'BR.GOV.BCB.PIX');
+  const chav = field('01', cfg.chave);
+  const desc = cfg.descricao ? field('02', cfg.descricao.substring(0, 72)) : '';
+  const mai  = field('26', gui + chav + desc);
+
+  // Valor
+  const valor = field('54', cfg.valor);
+
+  // Additional Data (txid)
+  const txidClean = cfg.txid.replace(/[^A-Za-z0-9]/g, '').substring(0, 25) || '***';
+  const addData   = field('62', field('05', txidClean));
+
+  // Payload sem CRC
+  const payload =
+    field('00', '01') +           // Payload Format Indicator
+    field('01', '12') +           // Point of Initiation: reutilizável
+    mai +
+    field('52', '0000') +         // Merchant Category Code
+    field('53', '986') +          // Transaction Currency (BRL)
+    valor +
+    field('58', 'BR') +           // Country Code
+    field('59', cfg.nome.substring(0, 25)) +
+    field('60', cfg.cidade.substring(0, 15)) +
+    addData +
+    '6304';                       // CRC placeholder
+
+  // CRC16-CCITT
+  function crc16(str) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= str.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      }
+    }
+    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  }
+
+  return payload + crc16(payload);
+}
+
+// ══════════════════════════════════
+// GERAR PIX (local, sem backend)
+// ══════════════════════════════════
+function gerarPix() {
+  const btn     = document.getElementById('pixRefreshBtn');
+  const copyBtn = document.getElementById('pixCopyBtn');
+  const errEl   = document.getElementById('pixErr');
+  const qrBox   = document.getElementById('pixQrBox');
+
+  btn.disabled = true;
+  copyBtn.disabled = true;
+  errEl.classList.remove('show');
+  document.getElementById('pixKey').textContent = 'Aguardando...';
+
+  // Mostra loading
+  qrBox.innerHTML = `
+    <div class="pix-loading" id="pixLoading">
+      <div class="pix-spinner"></div>
+      Gerando código...
+    </div>`;
+
+  clearInterval(pixTimerInterval);
+
+  setTimeout(() => {
+    try {
+      const payload = pixPayload(PIX_CONFIG);
+
+      // Limpa e cria container para o QR Code
+      qrBox.innerHTML = '';
+      qrBox.style.display = 'flex';
+      qrBox.style.alignItems = 'center';
+      qrBox.style.justifyContent = 'center';
+
+      new QRCode(qrBox, {
+        text: payload,
+        width: 148,
+        height: 148,
+        colorDark: '#111110',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+
+      // Exibe chave copia-e-cola
+      document.getElementById('pixKey').textContent = payload;
+      copyBtn.disabled = false;
+
+      // Inicia timer
+      pixSeconds = 900;
+      iniciarTimer();
+
+      btn.disabled = false;
+
+    } catch (err) {
+      errEl.textContent = `Erro ao gerar QR Code: ${err.message}`;
+      errEl.classList.add('show');
+      btn.disabled = false;
+    }
+  }, 600); // pequeno delay para exibir o loading
+}
+
+// ══════════════════════════════════
+// TIMER
+// ══════════════════════════════════
+function iniciarTimer() {
+  const el = document.getElementById('pixTimer');
+  clearInterval(pixTimerInterval);
+  atualizarTimer(el);
+  pixTimerInterval = setInterval(() => {
+    pixSeconds--;
+    if (pixSeconds <= 0) {
+      clearInterval(pixTimerInterval);
+      el.textContent = '00:00';
+      el.style.color = 'var(--danger)';
+      document.getElementById('pixKey').textContent = 'Código expirado — gere um novo';
+      document.getElementById('pixCopyBtn').disabled = true;
+    } else {
+      atualizarTimer(el);
+    }
+  }, 1000);
+}
+
+function atualizarTimer(el) {
+  const m = Math.floor(pixSeconds / 60);
+  const s = pixSeconds % 60;
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ══════════════════════════════════
+// COPIAR CHAVE
+// ══════════════════════════════════
+function copyPix() {
+  const key = document.getElementById('pixKey').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    const btn = document.querySelector('.pix-copy-btn');
+    btn.textContent = 'Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  }).catch(() => {});
+}
+
+// ══════════════════════════════════
+// SUCCESS (mantido para compatibilidade)
+// ══════════════════════════════════
+function showSuccess(txid, data) {
+  const agora = new Date().toLocaleString('pt-BR');
+  document.getElementById('successDetail').innerHTML = `
+    <div class="sd-row"><span class="sd-key">Método</span><span class="sd-val">PIX</span></div>
+    <div class="sd-row"><span class="sd-key">Valor</span><span class="sd-val">R$ 1.039,30</span></div>
+    <div class="sd-row"><span class="sd-key">TX ID</span><span class="sd-val" style="font-size:10px">${txid}</span></div>
+    <div class="sd-row"><span class="sd-key">Horário</span><span class="sd-val">${agora}</span></div>
+    <div class="sd-row"><span class="sd-key">Status</span><span class="sd-val" style="color:var(--success)">pago ✓</span></div>
+  `;
+  document.getElementById('successOverlay').classList.add('show');
+}
+
+function closeSuccess() {
+  document.getElementById('successOverlay').classList.remove('show');
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+gerarPix();
+</script>
+
+</body>
+</html>
